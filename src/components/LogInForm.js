@@ -1,36 +1,75 @@
 import React, { Component } from 'react';
 import { Text } from 'react-native';
 import firebase from 'firebase';
-import { Button, Card, CardSection, Input } from './common';
+import { Button, Card, CardSection, Input, Spinner } from './common';
 
 class LogInForm extends Component {
 
     state = {
         email: '',
         password: '',
-        error: ''
+        error: '',
+        loading: false,
     };
 
     onButtonPress() {
         const { email, password } = this.state;
+
+        this.setState({ error: '', loading: true });
+
         firebase.auth().signInWithEmailAndPassword(email, password)
+            .then(this.onLoginSuccess.bind(this))
             .catch(() => {
                 firebase.auth().createUserWithEmailAndPassword(email, password)
-                    .catch(() => {
-                        this.setState({ error: 'Authentication failed' });
-                    });
+                    .then(this.onLoginSuccess.bind(this))
+                    .catch(this.onLoginFailed.bind(this));
             });
+    }
+
+    onLoginFailed() {
+        this.setState({ error: 'Authentication failed', loading: false });
+    }
+
+    onLoginSuccess() {
+        this.setState({ 
+            email: '',
+            password: '',
+            loading: false,
+            error: '',
+        });
+    }
+
+    handleChangeText(email) {
+        this.setState({ email })
+    }
+
+    renderButton() {
+        if (this.state.loading) {
+            return <Spinner size="small" />;
+        }
+
+        return (
+            <Button onPress={this.onButtonPress.bind(this)}>
+                Log in
+            </Button>  
+        );
     }
 
     render() {
         return (
             <Card>
                 <CardSection>
-                    <Input
+                    {/* <Input
                         placeholder="user@gmail.com"
                         label="Email"
                         value={this.state.email}
                         onChangeText={email => this.setState({ email })}
+                    /> */}
+                    <Input
+                        placeholder="user@gmail.com"
+                        label="Email"
+                        value={this.state.email}
+                        onChangeText={(v) => this.handleChangeText(v)}
                     />
                 </CardSection>
                 
@@ -49,9 +88,7 @@ class LogInForm extends Component {
                 </Text>
 
                 <CardSection>
-                    <Button onPress={this.onButtonPress.bind(this)}>
-                        Login
-                    </Button>
+                    {this.renderButton()}
                 </CardSection>
             </Card>
         );
